@@ -51,7 +51,7 @@ const signup = async (req, res) => {
 };
 const getUser = async (req, res) => {
   const { id } = req.params;
-  console.log(id);
+  // console.log(id);
   try {
     const user = await UserModal.findById(id);
     res.status(200).json(user);

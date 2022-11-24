@@ -53,7 +53,7 @@ const Search = async (req, res) => {
   try {
     const title = new RegExp(searchQuery, "i");
     const blogs = await BlogModal.find({ title });
-    res.json(blogs);
+    res.status(200).json(blogs);
   } catch (error) {
     res.status(404).json({ message: "Something went wrong" });
   }
@@ -64,16 +64,15 @@ const getBlog = async (req, res) => {
     const blog = await BlogModal.findById(id);
     res.status(200).json(blog);
   } catch (error) {
-    res.status(404).json({ message: "Lỗi không lấy được 1" });
+    res.status(404).json({ message: "Lỗi không lấy được!" });
   }
 };
 const getBlogByUserId = async (req, res) => {
   try {
     const blog = await BlogModal.find({ userId: req.params.id });
-    // console.log(blog);
     res.status(200).json(blog);
   } catch (error) {
-    res.status(404).json({ message: "Lỗi không lấy được 1" });
+    res.status(404).json({ message: "Lỗi không lấy được!" });
   }
 };
 
