@@ -16,6 +16,9 @@ const userSchema = mongoose.Schema({
   id: {
     type: String,
   },
+  admin: {
+    type: Boolean,
+  },
   location: String,
   phone: String,
   picture: String,

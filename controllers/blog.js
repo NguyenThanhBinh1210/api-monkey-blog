@@ -20,7 +20,6 @@ const createBlog = async (req, res) => {
     });
     await newBlog.save();
     res.status(201).json(newBlog);
-    console.log(newBlog);
   } catch (error) {
     res.status(404).json({ message: "Lỗi không tạo được" });
   }
@@ -68,6 +67,7 @@ const getBlog = async (req, res) => {
   }
 };
 const getBlogByUserId = async (req, res) => {
+  console.log(req.user.id, req.params.id);
   try {
     const blog = await BlogModal.find({ userId: req.params.id });
     res.status(200).json(blog);

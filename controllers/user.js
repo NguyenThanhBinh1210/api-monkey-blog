@@ -1,7 +1,25 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const UserModal = require("../models/user.js");
+let refreshTokens = [];
+//  GENERATE ACCESS TOKEN
+const generateAccessToken = (user) => {
+  return jwt.sign({ id: user._id, admin: user.admin }, process.env.JWT_SECRET, {
+    expiresIn: "1d",
+  });
+};
+//  GENERATE REFRESH TOKEN
+const generateRefreshToken = (user) => {
+  return jwt.sign(
+    { id: user._id, admin: user.admin },
+    process.env.JWT_REFRESH_SECRET,
+    {
+      expiresIn: "365d",
+    }
+  );
+};
 
+// LOGIN
 const signin = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -17,13 +35,48 @@ const signin = async (req, res) => {
         .status(400)
         .json({ message: "Email hoặc mật khẩu không đúng!" }); // mat khau khong dung
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
+    const token = generateAccessToken(user);
+    const refreshToken = generateRefreshToken(user);
+    refreshTokens.push(refreshToken);
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: false,
+      path: "/",
+      sameSite: "strict",
+    });
     delete user.password;
     res.status(200).json({ token, user });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
+
+// REQUEST REFRESH TOKEN
+const reqRefreshToken = async (req, res) => {
+  const refreshToken = req.cookies.refreshToken;
+  if (!refreshToken) return res.status(401).json("Bạn chưa được xác thực!");
+  if (!refreshTokens.includes(refreshToken)) {
+    return res.status(403).json("Refresh token không được xác thực!");
+  }
+  jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET, (err, user) => {
+    if (err) {
+      console.log(err);
+    }
+    refreshTokens = refreshTokens.filter((token) => token !== refreshToken);
+    const newAccessToken = generateAccessToken(user);
+    const newRefreshToken = generateRefreshToken(user);
+    refreshTokens.push(newRefreshToken);
+    res.cookie("refreshToken", newRefreshToken, {
+      httpOnly: true,
+      secure: false,
+      path: "/",
+      sameSite: "strict",
+    });
+    res.status(200).json({ token: newAccessToken });
+  });
+};
+
+// LOGOUT
 const signup = async (req, res) => {
   const { email, password, fullName } = req.body;
   try {
@@ -41,10 +94,7 @@ const signup = async (req, res) => {
       name: fullName,
     }); // Bat dau tao user
 
-    const token = jwt.sign({ email: result.email, id: result._id }, "test", {
-      expiresIn: "1h",
-    });
-    res.status(201).json({ result, token });
+    res.status(201).json({ result });
   } catch (error) {
     res.status(500).json({ message: "Có lỗi ở đâu đó!" }); // Co loi o dau do
   }
@@ -63,8 +113,6 @@ const getUser = async (req, res) => {
 const editUser = async (req, res) => {
   try {
     const body = req.body;
-    // const salt = await bcrypt.genSalt();
-    // const passwordHash = await bcrypt.hash(body.password, salt);
     const Info = {
       ...body,
     };
@@ -75,4 +123,4 @@ const editUser = async (req, res) => {
   }
 };
 
-module.exports = { signup, signin, getUser, editUser };
+module.exports = { signup, signin, getUser, editUser, reqRefreshToken };
